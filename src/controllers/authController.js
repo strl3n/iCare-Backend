@@ -15,6 +15,17 @@ const generateToken = (user) => {
   );
 };
 
+// Helper: Format user response
+const formatUserResponse = (user) => {
+  return {
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    profilePicture: user.profilePicture || null,
+    isGoogleLogin: user.isGoogleLogin || false,
+  };
+};
+
 // @desc    Register User
 // @route   POST /api/auth/register
 // @access  Public
@@ -55,7 +66,7 @@ exports.register = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Registrasi berhasil! Silakan login.",
-      data: user,
+      data: formatUserResponse(user),
       token,
     });
   } catch (error) {
@@ -107,7 +118,7 @@ exports.login = async (req, res) => {
     res.json({
       success: true,
       message: "Login berhasil! Selamat datang kembali.",
-      data: user,
+      data: formatUserResponse(user),
       token,
     });
   } catch (error) {
@@ -151,7 +162,7 @@ exports.googleLogin = async (req, res) => {
     res.json({
       success: true,
       message: "Login dengan Google berhasil!",
-      data: user,
+      data: formatUserResponse(user),
       token,
     });
   } catch (error) {
@@ -179,7 +190,7 @@ exports.getMe = async (req, res) => {
 
     res.json({
       success: true,
-      data: user,
+      data: formatUserResponse(user),
     });
   } catch (error) {
     console.error("Get me error:", error);

@@ -27,7 +27,13 @@ exports.saveMood = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Mood berhasil disimpan!",
-      data: mood,
+      data: {
+        _id: mood._id.toString(),
+        userId: mood.userId.toString(),
+        moodLevel: mood.moodLevel,
+        note: mood.note,
+        date: mood.date.toISOString(),
+      },
     });
   } catch (error) {
     console.error("Save mood error:", error);
@@ -64,10 +70,19 @@ exports.getMoodHistory = async (req, res) => {
       .sort({ date: -1 })
       .limit(parseInt(limit));
 
+    // Format response
+    const formattedMoods = moods.map((mood) => ({
+      _id: mood._id.toString(),
+      userId: mood.userId.toString(),
+      moodLevel: mood.moodLevel,
+      note: mood.note,
+      date: mood.date.toISOString(),
+    }));
+
     res.json({
       success: true,
-      count: moods.length,
-      data: moods,
+      count: formattedMoods.length,
+      data: formattedMoods,
     });
   } catch (error) {
     console.error("Get mood history error:", error);
@@ -127,7 +142,15 @@ exports.getMoodStats = async (req, res) => {
         highestMood,
         lowestMood,
         weeklyAverage: Math.round(weeklyAverage * 10) / 10,
-        latestMood,
+        latestMood: latestMood
+          ? {
+              _id: latestMood._id.toString(),
+              userId: latestMood.userId.toString(),
+              moodLevel: latestMood.moodLevel,
+              note: latestMood.note,
+              date: latestMood.date.toISOString(),
+            }
+          : null,
       },
     });
   } catch (error) {
