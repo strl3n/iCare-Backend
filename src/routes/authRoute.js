@@ -9,7 +9,8 @@ const {
 } = require("../controllers/authController");
 const auth = require("../middlewares/auth");
 
-// @route   POST /api/auth/register
+// ==================== ROUTES ====================
+
 router.post(
   "/register",
   [
@@ -29,7 +30,6 @@ router.post(
   register
 );
 
-// @route   POST /api/auth/login
 router.post(
   "/login",
   [
@@ -42,7 +42,6 @@ router.post(
   login
 );
 
-// @route   POST /api/auth/google
 router.post(
   "/google",
   [
@@ -55,7 +54,6 @@ router.post(
   googleLogin
 );
 
-// @route   GET /api/auth/me
 router.get("/me", auth, getMe);
 
 module.exports = router;
