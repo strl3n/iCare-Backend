@@ -1,38 +1,31 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-// ✅ Cache koneksi untuk Vercel (serverless)
-let cached = global.mongoose;
-
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+// ✅ PASTIKAN MONGODB_URI ADA
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error("❌ MONGODB_URI tidak ditemukan di environment variables!");
+  process.exit(1);
 }
 
-const connectDB = async () => {
-  if (cached.conn) {
-    console.log("✅ Using cached database connection");
-    return cached.conn;
-  }
+console.log(`📁 MONGODB_URI: ${MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')}`);
 
-  if (!cached.promise) {
-    const opts = {
+// ✅ Koneksi dengan konfigurasi yang lebih robust
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-    };
-
-    cached.promise = mongoose.connect(process.env.MONGODB_URI, opts)
-      .then((mongoose) => {
-        console.log("✅ MongoDB Connected Successfully");
-        return mongoose;
-      })
-      .catch((error) => {
-        console.error("❌ MongoDB Connection Error:", error.message);
-        throw error;
-      });
+      serverSelectionTimeoutMS: 30000, // 30 detik
+      socketTimeoutMS: 45000,
+      family: 4, // Force IPv4
+    });
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    return conn;
+  } catch (error) {
+    console.error(`❌ MongoDB Connection Error: ${error.message}`);
+    throw error;
   }
-
-  cached.conn = await cached.promise;
-  return cached.conn;
 };
 
 module.exports = connectDB;
