@@ -1,11 +1,11 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const mongoose = require("mongoose"); // ⬅️ tadinya belum di-require, dipakai di /health
+const mongoose = require("mongoose");
+const axios = require("axios"); // ⬅️ BARU: dibutuhkan untuk manggil RapidAPI
+
 dotenv.config();
-
-const connectDB = require("./config/database"); // ⬅️ pindah ke atas, di luar if block
-
+const connectDB = require("./config/database");
 const app = express();
 
 app.use(cors());
@@ -35,8 +35,63 @@ app.use(async (req, res, next) => {
 app.use("/api/auth", require("./src/routes/authRoute"));
 app.use("/api/mood", require("./src/routes/moodRoute"));
 
+// ==================== QUOTE ====================
+// Manggil RapidAPI beneran (pakai RAPIDAPI_KEY dari env), bukan hardcoded lagi.
+//
+// API yang dipakai: "Quotes15" di RapidAPI. Kalau API RapidAPI kamu BEDA,
+// cukup sesuaikan RAPIDAPI_HOST, URL, dan cara ambil field quote/author
+// di bagian yang ditandai di bawah.
 app.get("/api/quote", async (req, res) => {
-  res.json({ success: true, data: { quote: "Test", author: "iCare" } });
+  const RAPIDAPI_HOST = "quotes15.p.rapidapi.com";
+
+  try {
+    // Filter tag yang positif/menenangkan — sesuai tema aplikasi pencegahan
+    // bunuh diri (SDG 3.2.4), supaya quote yang muncul tidak berpotensi sedih/berat.
+    const positiveTags = ["happiness", "life", "inspirational", "motivational", "hope"];
+    const randomTag = positiveTags[Math.floor(Math.random() * positiveTags.length)];
+
+    const response = await axios.get(
+      `https://${RAPIDAPI_HOST}/quotes/random/`,
+      {
+        params: { tag: randomTag, language_code: "en" },
+        headers: {
+          "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
+          "X-RapidAPI-Host": RAPIDAPI_HOST,
+        },
+        timeout: 8000,
+      }
+    );
+
+    // ⬇️ Sesuaikan mapping ini kalau struktur JSON API-mu beda.
+    // Quotes15 mengembalikan: { content: "...", originator: { name: "..." } }
+    const quoteText = response.data?.content;
+    const author = response.data?.originator?.name || "Unknown";
+
+    if (!quoteText) {
+      throw new Error("Response RapidAPI tidak berisi quote");
+    }
+
+    res.json({
+      success: true,
+      data: { quote: quoteText, author },
+    });
+  } catch (error) {
+    console.error("❌ Gagal ambil quote dari RapidAPI:", error.message);
+
+    // Fallback quote positif kalau RapidAPI gagal/timeout/quota habis,
+    // supaya endpoint tetap selalu mengembalikan sesuatu yang baik untuk ditampilkan.
+    const fallbackQuotes = [
+      { quote: "Kamu lebih kuat dari yang kamu kira, dan hari ini adalah awal yang baru.", author: "iCare" },
+      { quote: "Setiap badai pasti berlalu. Kamu tidak sendirian.", author: "iCare" },
+      { quote: "Hidupmu berharga, dan dunia ini lebih baik dengan kehadiranmu.", author: "iCare" },
+    ];
+    const fallback = fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
+
+    res.json({
+      success: true,
+      data: fallback,
+    });
+  }
 });
 
 app.get("/health", (req, res) => {
